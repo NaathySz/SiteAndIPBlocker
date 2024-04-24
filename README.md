@@ -26,7 +26,8 @@ A chat plugin that blocks websites and IP addresses, with a configurable whiteli
 {orange}
 ```
 
-## Whitelist example
+## Config example
+The configuration file will be automatically generated in `csgo/addons/counterstrikesharp/configs/plugins/IPAndSiteBlocker/IPAndSiteBlocker.json`
 ```
 {
   "whitelist": [

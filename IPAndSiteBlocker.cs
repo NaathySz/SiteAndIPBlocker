@@ -2,6 +2,7 @@ using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
 using CounterStrikeSharp.API.Modules.Commands;
 using CounterStrikeSharp.API.Modules.Utils;
+using CounterStrikeSharp.API.Modules.Admin;
 using CounterStrikeSharp.API.Modules.Memory;
 using CounterStrikeSharp.API.Core.Attributes.Registration;
 using System.Text.Json.Serialization;
@@ -26,14 +27,17 @@ public class SiteAndIPBlockerConfig : BasePluginConfig
     [JsonPropertyName("rename_message")]
     public string RenameMessage { get; set; } = "{darkred}Your name contains a blocked IP address or website. It will be renamed.";
 
+    [JsonPropertyName("admin_immunity")]
+    public int AdminImmunity { get; set; } = 0;
+
     [JsonPropertyName("ConfigVersion")]
-    public override int Version { get; set; } = 2;
+    public override int Version { get; set; } = 3;
 }
 
 public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig>
 {
     public override string ModuleName => "Site and IP Blocker";
-    public override string ModuleVersion => "1.1.0";
+    public override string ModuleVersion => "1.2.0";
     public override string ModuleAuthor => "Nathy";
     public override string ModuleDescription => "Block sites and IP addresses in chat.";
 
@@ -126,6 +130,11 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
         if (player == null || !player.IsValid || player.IsBot || string.IsNullOrEmpty(message.GetArg(1)))
             return HookResult.Handled;
 
+        if (Config.AdminImmunity == 1 && AdminManager.PlayerHasPermissions(player, "@css/generic"))
+        {
+            return HookResult.Continue;
+        }
+
         string chatMessage = message.GetArg(1);
 
         if (ContainsUrlOrIp(chatMessage))
@@ -146,6 +155,11 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
     {
         if (player == null || !player.IsValid || player.IsBot || string.IsNullOrEmpty(message.GetArg(1)))
             return HookResult.Handled;
+
+        if (Config.AdminImmunity == 1 && AdminManager.PlayerHasPermissions(player, "@css/generic"))
+        {
+            return HookResult.Continue;
+        }
 
         string chatMessage = message.GetArg(1);
 

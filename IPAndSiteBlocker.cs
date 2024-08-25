@@ -10,7 +10,6 @@ using System.Text.RegularExpressions;
 using System.Reflection;
 using System.Text.Json;
 
-
 namespace SiteAndIPBlocker;
 
 public class SiteAndIPBlockerConfig : BasePluginConfig

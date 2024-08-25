@@ -37,9 +37,9 @@ public class SiteAndIPBlockerConfig : BasePluginConfig
 public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig>
 {
     public override string ModuleName => "Site and IP Blocker";
-    public override string ModuleVersion => "1.2.0";
+    public override string ModuleVersion => "1.3.0";
     public override string ModuleAuthor => "Nathy";
-    public override string ModuleDescription => "Block sites and IP addresses in chat.";
+    public override string ModuleDescription => "Block sites and IP addresses in chat + player names.";
 
     public SiteAndIPBlockerConfig Config { get; set; } = null!;
 
@@ -53,6 +53,21 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
 
     private static readonly string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name ?? "";
     private static readonly string CfgPath = $"{Server.GameDirectory}/csgo/addons/counterstrikesharp/configs/plugins/{AssemblyName}/{AssemblyName}.json";
+
+    private static readonly List<string> CommonDomains = new List<string>
+    {
+        ".com",
+        ".net",
+        ".org",
+        ".info",
+        ".biz",
+        ".us",
+        ".co",
+        ".io",
+        ".me",
+        ".tv",
+        ".edu"
+    };
 
     private static void UpdateConfig<T>(T config) where T : BasePluginConfig, new()
     {
@@ -119,11 +134,13 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
 
     private bool ContainsUrlOrIp(string message)
     {
-        string cleanedMessage = Regex.Replace(message, @"\s+", ".");
+        if (UrlOrIpRegex.IsMatch(message))
+        {
+            return true;
+        }
 
-        return UrlOrIpRegex.IsMatch(cleanedMessage);
+        return CommonDomains.Any(domain => message.IndexOf(domain, StringComparison.OrdinalIgnoreCase) >= 0);
     }
-
 
     private HookResult OnPlayerChatAll(CCSPlayerController? player, CommandInfo message)
     {
@@ -208,7 +225,6 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
             }
         }
     }
-
 
     [GameEventHandler]
     public HookResult OnPlayerChangeName(EventPlayerChangename @event, GameEventInfo info)

@@ -1,5 +1,5 @@
 # SiteAndIPBlocker
-A chat plugin that blocks websites and IP addresses, with a configurable whitelist for allowed sites and IPs.
+A plugin that blocks websites and IP addresses (name + chat), with a configurable whitelist for allowed sites and IPs.
 
 ## Config
 The configuration file will be automatically generated in `csgo/addons/counterstrikesharp/configs/plugins/IPAndSiteBlocker/IPAndSiteBlocker.json`

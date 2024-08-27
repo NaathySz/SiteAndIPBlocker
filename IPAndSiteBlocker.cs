@@ -36,9 +36,9 @@ public class SiteAndIPBlockerConfig : BasePluginConfig
 public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig>
 {
     public override string ModuleName => "Site and IP Blocker";
-    public override string ModuleVersion => "1.2.0";
+    public override string ModuleVersion => "1.3.0";
     public override string ModuleAuthor => "Nathy";
-    public override string ModuleDescription => "Block sites and IP addresses in chat.";
+    public override string ModuleDescription => "Block sites and IP addresses in chat + player names.";
 
     public SiteAndIPBlockerConfig Config { get; set; } = null!;
 
@@ -53,7 +53,22 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
     private static readonly string AssemblyName = Assembly.GetExecutingAssembly().GetName().Name ?? "";
     private static readonly string CfgPath = $"{Server.GameDirectory}/csgo/addons/counterstrikesharp/configs/plugins/{AssemblyName}/{AssemblyName}.json";
 
-    private static void UpdateConfig<T>(T config) where T : BasePluginConfig, new()
+    private static readonly List<string> CommonDomains = new List<string>
+    {
+        ".com",
+        ".net",
+        ".org",
+        ".info",
+        ".biz",
+        ".us",
+        ".co",
+        ".io",
+        ".me",
+        ".tv",
+        ".edu"
+    };
+
+    private void UpdateConfig<T>(T config) where T : BasePluginConfig, new()
     {
         var newCfgVersion = new T().Version;
 
@@ -67,8 +82,6 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
 
         Console.WriteLine($"Config updated for V{newCfgVersion}.");
     }
-
-
 
     public override void Load(bool hotReload)
     {
@@ -103,7 +116,6 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
 
     private string ReplaceColorPlaceholders(string message)
     {
-
         if (!string.IsNullOrEmpty(message) && message[0] != ' ')
         {
             message = " " + message;
@@ -118,11 +130,20 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
 
     private bool ContainsUrlOrIp(string message)
     {
-        string cleanedMessage = Regex.Replace(message, @"\s+", ".");
-
-        return UrlOrIpRegex.IsMatch(cleanedMessage);
+        return UrlOrIpRegex.IsMatch(message) || CommonDomains.Any(domain => message.IndexOf(domain, StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
+    private string CleanName(string name)
+    {
+        name = UrlOrIpRegex.Replace(name, "");
+        
+        foreach (var domain in CommonDomains)
+        {
+            name = Regex.Replace(name, $@"\b\w+{Regex.Escape(domain)}\b", "", RegexOptions.IgnoreCase);
+        }
+
+        return name.Trim();
+    }
 
     private HookResult OnPlayerChatAll(CCSPlayerController? player, CommandInfo message)
     {
@@ -183,7 +204,6 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
         return HookResult.Continue;
     }
 
-
     private void checkPlayerName(CCSPlayerController? player)
     {
         if (player == null || player.IsBot)
@@ -202,12 +222,11 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
                 }
                 else if (Config.NameAction == 1)
                 {
-                    RenamePlayer(player, playerName);
+                    RenamePlayer(player);
                 }
             }
         }
     }
-
 
     [GameEventHandler]
     public HookResult OnPlayerChangeName(EventPlayerChangename @event, GameEventInfo info)
@@ -232,7 +251,7 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
                 }
                 else if (Config.NameAction == 1)
                 {
-                    RenamePlayer(player, newName);
+                    RenamePlayer(player);
                 }
             }
         }
@@ -240,18 +259,17 @@ public class SiteAndIPBlocker : BasePlugin, IPluginConfig<SiteAndIPBlockerConfig
         return HookResult.Continue;
     }
 
-
-    private void RenamePlayer(CCSPlayerController player, string playerName)
+    private void RenamePlayer(CCSPlayerController player)
     {
-        string cleanedName = UrlOrIpRegex.Replace(playerName, "").Trim();
-        
-        NativeAPI.IssueServerCommand($"css_rename \"{player.PlayerName}\" \"{cleanedName}\"");
+        string cleanedName = CleanName(player.PlayerName);
+
+        player.PlayerName = cleanedName;
+
+        Utilities.SetStateChanged(player, "CBasePlayerController", "m_iszPlayerName");
 
         string renameMessage = ReplaceColorPlaceholders(Config.RenameMessage);
-        
         player.PrintToChat(renameMessage);
     }
-
 
     private bool IsWhitelisted(string message)
     {
